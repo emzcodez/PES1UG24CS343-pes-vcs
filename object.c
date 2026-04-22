@@ -91,22 +91,7 @@ void object_path(const ObjectID *id, char *path_out, size_t path_size) {
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
     if (!data || !id_out) return -1;
 
-    // 1. Convert type enum → string
-    const char *type_str = NULL;
-    if (type == OBJ_BLOB) type_str = "blob";
-    else if (type == OBJ_TREE) type_str = "tree";
-    else if (type == OBJ_COMMIT) type_str = "commit";
-    else return -1;
- len);
-
-    // 4. Compute hash
-    compute_hash(buf, total_len, id_out);
-
-    // 5. Check if already exists (deduplication)
-    if (object_exists(id_out)) {
-        free(buf);
-        return 0;
-    }
+    // 1. 
 
     // 6. Build object path
     char path[512];
