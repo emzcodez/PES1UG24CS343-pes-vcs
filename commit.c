@@ -35,17 +35,7 @@ int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_
 int commit_parse(const void *data, size_t len, Commit *commit_out) {
     (void)len;
     const char *p = (const char *)data;
-    char hex[HASH_HEX_SIZE + 1];
-
-    // "tree <hex>\n"
-    if (sscanf(p, "tree %64s\n", hex) != 1) return -1;
-    if (hex_to_hash(hex, &commit_out->tree) != 0) return -1;
-    p = strchr(p, '\n') + 1;
-
-    // optional "parent <hex>\n"
-    if (strncmp(p, "parent ", 7) == 0) {
-        if (sscanf(p, "parent %64s\n", hex) != 1) return -1;
-        if (hex_to_hash(hex, &commit_out->parent) != 0) return -1;
+    char hex[HASH_->parent) != 0) return -1;
         commit_out->has_parent = 1;
         p = strchr(p, '\n') + 1;
     } else {
