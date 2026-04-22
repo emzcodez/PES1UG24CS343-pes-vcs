@@ -95,6 +95,49 @@ int object_exists(const ObjectID *id) {
 // Returns 0 on success, -1 on error.
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
     // TODO: Implement
+    
+    // Extract directory path (.pes/objects/XX)
+    char dir[512];
+    snprintf(dir, sizeof(dir), "%s", path);
+    char *slash = strrchr(dir, '/');
+    if (!slash) {
+        free(buf);
+        return -1;
+    }
+    *slash = '\0';
+
+    // 7. Create directory if not exists
+    if (mkdir(dir, 0755) != 0) {
+    // ignore if already exists
+    }
+    // 8. Create temp file
+    char tmp_path[520];
+    snprintf(tmp_path, sizeof(tmp_path), "%s/tmpXXXXXX", dir);
+
+    int fd = mkstemp(tmp_path);
+    if (fd < 0) {
+      free(buf);
+      return -1;
+    }
+
+    // 9. Write data
+    ssize_t written = 0;
+    while (written < (ssize_t)total_len) {
+      ssize_t n = write(fd, buf + written, total_len - written);
+      if (n <= 0) {
+        close(fd);
+        free(buf);
+        return -1;
+      }
+      written += n;
+    }
+
+    // 10. fsync file
+    fsync(fd);
+    close(fd);
+
+    // 11. Rename to final path
+    if (rename(tmp_path, path) != 
     ize);
     if (!buf) { fclose(f); return -1; }
 
