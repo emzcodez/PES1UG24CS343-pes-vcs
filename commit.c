@@ -3,27 +3,6 @@
 // Commit object format (stored as text, one field per line):
 //
 //   tree <64-char-hex-hash>
-//   parent <64-char-hex-hash>        ← omitted for the first commit
-//   author <name> <unix-timestamp>
-//   committer <name> <unix-timestamp>
-//
-//   <commit message>
-//
-// Note: there is a blank line between the headers and the message.
-//
-// PROVIDED functions: commit_parse, commit_serialize, commit_walk, head_read, head_update
-// TODO functions:     commit_create
-
-#include "commit.h"
-#include "index.h"
-#include "tree.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
-#include <time.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 // Forward declarations (implemented in object.c)
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
@@ -134,16 +113,11 @@ int head_update(const ObjectID *new_commit) {
         snprintf(target_path, sizeof(target_path), "%s/%s", PES_DIR, line + 5);
     } else {
         snprintf(target_path, sizeof(target_path), "%s", HEAD_FILE); // Detached HEAD
-    }
-
-    char tmp_path[528];
-    snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", target_path);
+    }eof(tmp_path), "%s.tmp", target_path);
     
     f = fopen(tmp_path, "w");
     if (!f) return -1;
-    
-    char hex[HASH_HEX_SIZE + 1];
-    hash_to_hex(new_commit, hex);
+    , hex);
     fprintf(f, "%s\n", hex);
     
     fflush(f);
