@@ -132,6 +132,34 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
 // Returns 0 on success, -1 on error (file not found, corrupt, etc.).
 int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_t *len_out) {
     // TODO: Implement
+      if (!id || !type_out || !data_out || !len_out) return -1;
+
+    // 1. Build file path
+    char path[512];
+    object_path(id, path, sizeof(path));
+
+    // 2. Open and read entire file
+    FILE *f = fopen(path, "rb");
+    if (!f) return -1;
+
+    fseek(f, 0, SEEK_END);
+    long file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if (file_size <= 0) { fclose(f); return -1; }
+
+    unsigned char *buf = malloc(file_size);
+    if (!buf) { fclose(f); return -1; }
+
+    if ((long)fread(buf, 1, file_size, f) != file_size) {
+        fclose(f); free(buf); return -1;
+    }
+    fclose(f);
+
+    // 3. Verify integrity: recompute hash and compare
+    ObjectID computed;
+    compute_hash(buf, file_size, &computed);
+    if (memcmp(computed.hash
     Parse type from header ("blob N", "tree N", "commit N")
     if (strncmp((char *)buf, "blob ", 5) == 0)        *type_out = OBJ_BLOB;
     else if (strncmp((char *)buf, "tree ", 5) == 0)   *type_out = OBJ_TREE;
