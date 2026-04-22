@@ -94,8 +94,41 @@ int object_exists(const ObjectID *id) {
 //
 // Returns 0 on success, -1 on error.
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
-    // TODO: Implement
-    
+    if (!data || !id_out) return -1;
+
+    // 1. Convert type enum → string
+    const char *type_str = NULL;
+    if (type == OBJ_BLOB) type_str = "blob";
+    else if (type == OBJ_TREE) type_str = "tree";
+    else if (type == OBJ_COMMIT) type_str = "commit";
+    else return -1;
+
+    // 2. Build header "type size"
+    char header[64];
+    int header_len = snprintf(header, sizeof(header), "%s %zu", type_str, len);
+
+    // 3. Build full object = header + '\0' + data
+    size_t total_len = header_len + 1 + len;
+    unsigned char *buf = malloc(total_len);
+    if (!buf) return -1;
+
+    memcpy(buf, header, header_len);
+    buf[header_len] = '\0';
+    memcpy(buf + header_len + 1, data, len);
+
+    // 4. Compute hash
+    compute_hash(buf, total_len, id_out);
+
+    // 5. Check if already exists (deduplication)
+    if (object_exists(id_out)) {
+        free(buf);
+        return 0;
+    }
+
+    // 6. Build object path
+    char path[512];
+    object_path(id_out, path, sizeof(path));
+
     // Extract directory path (.pes/objects/XX)
     char dir[512];
     snprintf(dir, sizeof(dir), "%s", path);
@@ -137,18 +170,20 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     close(fd);
 
     // 11. Rename to final path
-    if (rename(tmp_path, path) != 
-    ize);
-    if (!buf) { fclose(f); return -1; }
-
-    if ((long)fread(buf, 1, file_size, f) != file_size) {
-        fclose(f); free(buf); return -1;
+    if (rename(tmp_path, path) != 0) {
+        free(buf);
+        return -1;
     }
-    fclose(f);
 
-    // 3. Verify integrity: recompute hash and com
-    (void)type; (void)data; (void)len; (void)id_out;
-    return -1;
+    // 12. fsync directory 
+    int dir_fd = open(dir, O_RDONLY);
+    if (dir_fd >= 0) {
+        fsync(dir_fd);
+        close(dir_fd);
+    }
+
+    free(buf);
+    return 0;
 }
 
 // Read an object from the store.
@@ -174,8 +209,7 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
 // The caller is responsible for calling free(*data_out).
 // Returns 0 on success, -1 on error (file not found, corrupt, etc.).
 int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_t *len_out) {
-    // TODO: Implement
-      if (!id || !type_out || !data_out || !len_out) return -1;
+    if (!id || !type_out || !data_out || !len_out) return -1;
 
     // 1. Build file path
     char path[512];
@@ -202,8 +236,15 @@ int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_
     // 3. Verify integrity: recompute hash and compare
     ObjectID computed;
     compute_hash(buf, file_size, &computed);
-    if (memcmp(computed.hash
-    Parse type from header ("blob N", "tree N", "commit N")
+    if (memcmp(computed.hash, id->hash, HASH_SIZE) != 0) {
+        free(buf); return -1;
+    }
+
+    // 4. Find the '\0' separating header from data
+    unsigned char *null_ptr = memchr(buf, '\0', file_size);
+    if (!null_ptr) { free(buf); return -1; }
+
+    // 5. Parse type from header ("blob N", "tree N", "commit N")
     if (strncmp((char *)buf, "blob ", 5) == 0)        *type_out = OBJ_BLOB;
     else if (strncmp((char *)buf, "tree ", 5) == 0)   *type_out = OBJ_TREE;
     else if (strncmp((char *)buf, "commit ", 7) == 0) *type_out = OBJ_COMMIT;
@@ -218,7 +259,8 @@ int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_
     memcpy(out, data_start, data_len);
 
     *data_out = out;
-    *len_out = data_
-    (void)id; (void)type_out; (void)data_out; (void)len_out;
-    return -1;
+    *len_out = data_len;
+
+    free(buf);
+    return 0;
 }
