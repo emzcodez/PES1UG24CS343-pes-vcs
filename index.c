@@ -127,18 +127,7 @@ int index_load(Index *index) {
 // HINTS - Useful functions and syscalls:
 //   - qsort                            : sorting the entries array by path
 //   - fopen (with "w"), fprintf        : writing to the temporary file
-//   - hash_to_hex                      : converting ObjectID for text output
-//   - fflush, fileno, fsync, fclose    : flushing userspace buffers and syncing to disk
-//   - rename                           : atomically moving the temp file over the old index
-//
-// Returns 0 on success, -1 on error.
-int index_save(const Index *index) {
-    // TODO: Implement atomic index saving
-    // (See Lab Appendix for logical steps)
-    (void)index;
-    return -1;
-}
-
+//   - hash_to_hex                      : convert
 // Stage a file for the next commit.
 //
 // HINTS - Useful functions and syscalls:
