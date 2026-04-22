@@ -72,23 +72,7 @@ int commit_serialize(const Commit *commit, void **data_out, size_t *len_out) {
     int n = 0;
     n += snprintf(buf + n, sizeof(buf) - n, "tree %s\n", tree_hex);
     if (commit->has_parent) {
-        hash_to_hex(&commit->parent, parent_hex);
-        n += snprintf(buf + n, sizeof(buf) - n, "parent %s\n", parent_hex);
-    }
-    n += snprintf(buf + n, sizeof(buf) - n,
-                  "author %s %" PRIu64 "\n"
-                  "committer %s %" PRIu64 "\n"
-                  "\n"
-                  "%s",
-                  commit->author, commit->timestamp,
-                  commit->author, commit->timestamp,
-                  commit->message);
-
-    *data_out = malloc(n + 1);
-    if (!*data_out) return -1;
-    memcpy(*data_out, buf, n + 1);
-    *len_out = (size_t)n;
-    return 0;
+ 
 }
 
 // Walk commit history from HEAD to the root.
