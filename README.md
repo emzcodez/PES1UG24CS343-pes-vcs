@@ -19,7 +19,7 @@ sudo apt update && sudo apt install -y gcc build-essential libssl-dev
 This is a **template repository**. Do **not** fork it.
 
 1. Click **"Use this template"** → **"Create a new repository"** on GitHub
-2. Name your repository (e.g., `SRN-pes-vcs`) and set it to **public**. Replace `SRN` with your actual SRN, e.g., `PESXUG24CSYYY-pes-vcs`
+2. Name your repository (e.g., `SRN-pes-vcs`) and set it to **public**. Replace `SRN` with your actual SRN, e.g., `PES1UG24CS343-pes-vcs`
 3. Clone this repository to your local machine and do all your lab work inside this directory.
 4.  **Important:** Remember to commit frequently as you progress. You are required to have a minimum of 5 detailed commits per phase. Refer to [Submission Requirements](#submission-requirements) for more details.
 5. Clone your new repository and start working
@@ -375,8 +375,11 @@ The test program verifies:
 - Integrity checking (detects corrupted objects)
 
 **📸 Screenshot 1A:** Output of `./test_objects` showing all tests passing.
+<img width="940" height="129" alt="image" src="https://github.com/user-attachments/assets/1abd5deb-8b02-45bc-b474-7b56406465e5" />
+
 
 **📸 Screenshot 1B:** `find .pes/objects -type f` showing the sharded directory structure.
+<img width="940" height="130" alt="image" src="https://github.com/user-attachments/assets/7be2d1b4-0a59-4215-85b8-e003dff8341d" />
 
 ---
 
@@ -407,8 +410,10 @@ The test program verifies:
 - Deterministic serialization (same entries in any order → identical output)
 
 **📸 Screenshot 2A:** Output of `./test_tree` showing all tests passing.
+<img width="752" height="109" alt="image" src="https://github.com/user-attachments/assets/c226609a-9ddb-4fae-941d-7fe1ef732ee0" />
 
 **📸 Screenshot 2B:** Pick a tree object from `find .pes/objects -type f` and run `xxd .pes/objects/XX/YYY... | head -20` to show the raw binary format.
+<img width="752" height="109" alt="image" src="https://github.com/user-attachments/assets/3ab1c865-4ac0-4826-9043-87bb4f818a54" />
 
 ---
 
@@ -465,8 +470,10 @@ cat .pes/index    # Human-readable text format
 ```
 
 **📸 Screenshot 3A:** Run `./pes init`, `./pes add file1.txt file2.txt`, `./pes status` — show the output.
+<img width="717" height="589" alt="image" src="https://github.com/user-attachments/assets/7dc3693b-42ec-4ce6-bbd7-df883804a15c" />
 
 **📸 Screenshot 3B:** `cat .pes/index` showing the text-format index with your entries.
+<img width="940" height="99" alt="image" src="https://github.com/user-attachments/assets/32c456a4-b25a-4985-8cb7-ed4599bf3540" />
 
 ---
 
@@ -516,10 +523,13 @@ make test-integration
 ```
 
 **📸 Screenshot 4A:** Output of `./pes log` showing three commits with hashes, authors, timestamps, and messages.
+<img width="856" height="439" alt="image" src="https://github.com/user-attachments/assets/e7d41df9-82ac-47c8-8a2b-3b52f92deaf7" />
 
 **📸 Screenshot 4B:** `find .pes -type f | sort` showing object store growth after three commits.
+<img width="927" height="403" alt="image" src="https://github.com/user-attachments/assets/a211cb72-53a6-4210-bfde-93fdaaf736d1" />
 
 **📸 Screenshot 4C:** `cat .pes/refs/heads/main` and `cat .pes/HEAD` showing the reference chain.
+<img width="940" height="124" alt="image" src="https://github.com/user-attachments/assets/610cc9b2-a67e-487f-b1eb-a4ed4eabc637" />
 
 ---
 
@@ -530,19 +540,115 @@ The following questions cover filesystem concepts beyond the implementation scop
 ### Branching and Checkout
 
 **Q5.1:** A branch in Git is just a file in `.git/refs/heads/` containing a commit hash. Creating a branch is creating a file. Given this, how would you implement `pes checkout <branch>` — what files need to change in `.pes/`, and what must happen to the working directory? What makes this operation complex?
+Solution:
+A pes checkout <branch> operation involves both updating repository metadata and modifying the working directory.
+
+In .pes/, the following changes are required:
+
+The file .pes/refs/heads/<branch> is read to obtain the commit hash of the target branch.
+The HEAD file is updated to point to the new branch, i.e., it should contain ref: refs/heads/<branch>.
+
+After updating HEAD, the system must:
+
+Load the commit object corresponding to the branch.
+Extract the associated tree object.
+Recursively reconstruct the working directory by writing all files and directories from the tree (blobs → file contents, trees → directories).
+Update the index to match the new tree.
+
+This operation is complex due to:
+
+The need to prevent overwriting uncommitted user changes.
+Handling conflicts such as file-to-directory or directory-to-file transitions.
+Ensuring atomic updates to avoid inconsistent states if interrupted.
 
 **Q5.2:** When switching branches, the working directory must be updated to match the target branch's tree. If the user has uncommitted changes to a tracked file, and that file differs between branches, checkout must refuse. Describe how you would detect this "dirty working directory" conflict using only the index and the object store.
+Solution: To detect a dirty working directory conflict during checkout, the system compares three versions of each tracked file:
+
+The version in the index (staged version).
+The current working directory version.
+The version in the target branch’s tree.
+
+Steps:
+
+For each file in the index, compute the hash of the current working file (by reading its contents and hashing it as a blob).
+Compare this hash with the stored hash in the index:
+If they differ, the file has been modified.
+Load the target branch’s commit and extract its tree.
+For the same file path, obtain the blob hash from the target tree.
+
+A conflict occurs if:
+
+The working file differs from the index (uncommitted change), and
+The target branch’s version also differs from the index.
+
+In this case, checkout must be refused to prevent data loss.
 
 **Q5.3:** "Detached HEAD" means HEAD contains a commit hash directly instead of a branch reference. What happens if you make commits in this state? How could a user recover those commits?
+Solution: In a detached HEAD state, the HEAD file contains a commit hash directly instead of referencing a branch.
+
+If commits are made in this state:
+
+New commit objects are created normally.
+However, no branch points to these commits, making them unreachable from any named reference.
+
+If the user switches to another branch:
+
+These commits become dangling (unreferenced) and may eventually be garbage collected.
+
+Recovery is possible by:
+
+Creating a new branch pointing to the detached commit (e.g., pes branch <name> <commit_hash>).
+Alternatively, locating the commit hash from logs or history and manually restoring it.
 
 ### Garbage Collection and Space Reclamation
 
 **Q6.1:** Over time, the object store accumulates unreachable objects — blobs, trees, or commits that no branch points to (directly or transitively). Describe an algorithm to find and delete these objects. What data structure would you use to track "reachable" hashes efficiently? For a repository with 100,000 commits and 50 branches, estimate how many objects you'd need to visit.
+Solution: To remove unreachable objects, a mark-and-sweep garbage collection algorithm can be used.
+
+Algorithm:
+
+Mark phase:
+Start from all branch heads in .pes/refs/heads/.
+For each commit:
+Mark the commit as reachable.
+Recursively mark its tree object.
+Traverse the tree to mark all referenced blobs and subtrees.
+Follow parent commits recursively.
+Data structure:
+Use a hash set to store all reachable object hashes for efficient lookup (O(1)).
+Sweep phase:
+Traverse all objects in .pes/objects/.
+Delete any object whose hash is not present in the reachable set.
+
+For a repository with 100,000 commits and 50 branches:
+
+Each commit is visited once → ~100,000
+Each commit references a tree → ~100,000 trees
+Trees reference blobs → possibly several hundred thousand blobs
+
+Total objects visited would be on the order of hundreds of thousands (~500k–700k)
 
 **Q6.2:** Why is it dangerous to run garbage collection concurrently with a commit operation? Describe a race condition where GC could delete an object that a concurrent commit is about to reference. How does Git's real GC avoid this?
 
 ---
+Solution: Running garbage collection concurrently with a commit operation is dangerous due to race conditions.
 
+Scenario:
+
+A commit operation writes new blob and tree objects to the object store.
+Before the commit updates the branch reference (HEAD), these objects are not yet reachable.
+If garbage collection runs at this moment:
+It scans reachable objects from branch heads.
+The newly created objects are not yet referenced.
+GC incorrectly deletes them.
+The commit then finishes and references objects that no longer exist, corrupting the repository.
+
+Git avoids this problem by:
+
+Using locking mechanisms to prevent GC from running concurrently with critical operations.
+Writing objects before updating references atomically.
+Using temporary references and grace periods to protect newly created objects.
+Performing GC in a controlled manner where objects are only deleted when safely unreachable.
 ## Submission Checklist
 
 ### Screenshots Required
