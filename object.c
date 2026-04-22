@@ -95,6 +95,15 @@ int object_exists(const ObjectID *id) {
 // Returns 0 on success, -1 on error.
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
     // TODO: Implement
+    ize);
+    if (!buf) { fclose(f); return -1; }
+
+    if ((long)fread(buf, 1, file_size, f) != file_size) {
+        fclose(f); free(buf); return -1;
+    }
+    fclose(f);
+
+    // 3. Verify integrity: recompute hash and com
     (void)type; (void)data; (void)len; (void)id_out;
     return -1;
 }
@@ -123,6 +132,7 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
 // Returns 0 on success, -1 on error (file not found, corrupt, etc.).
 int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_t *len_out) {
     // TODO: Implement
+    
     (void)id; (void)type_out; (void)data_out; (void)len_out;
     return -1;
 }
