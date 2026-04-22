@@ -132,7 +132,22 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
 // Returns 0 on success, -1 on error (file not found, corrupt, etc.).
 int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_t *len_out) {
     // TODO: Implement
-    
+    Parse type from header ("blob N", "tree N", "commit N")
+    if (strncmp((char *)buf, "blob ", 5) == 0)        *type_out = OBJ_BLOB;
+    else if (strncmp((char *)buf, "tree ", 5) == 0)   *type_out = OBJ_TREE;
+    else if (strncmp((char *)buf, "commit ", 7) == 0) *type_out = OBJ_COMMIT;
+    else { free(buf); return -1; }
+
+    // 6. Extract data portion (everything after the '\0')
+    unsigned char *data_start = null_ptr + 1;
+    size_t data_len = file_size - (data_start - buf);
+
+    void *out = malloc(data_len);
+    if (!out) { free(buf); return -1; }
+    memcpy(out, data_start, data_len);
+
+    *data_out = out;
+    *len_out = data_
     (void)id; (void)type_out; (void)data_out; (void)len_out;
     return -1;
 }
