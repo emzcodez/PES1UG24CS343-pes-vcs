@@ -95,9 +95,7 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
         // Write binary hash
         memcpy(buffer + offset, entry->hash.hash, HASH_SIZE);
         offset += HASH_SIZE;
-    }
-
-    *data_out = buffer;
+uffer;
     *len_out = offset;
     return 0;
 }
