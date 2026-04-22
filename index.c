@@ -60,26 +60,7 @@ int index_remove(Index *index, const char *path) {
 int index_status(const Index *index) {
     printf("Staged changes:\n");
     int staged_count = 0;
-    // Note: A true Git implementation deeply diffs against the HEAD tree here. 
-    // For this lab, displaying indexed files represents the staging intent.
-    for (int i = 0; i < index->count; i++) {
-        printf("  staged:     %s\n", index->entries[i].path);
-        staged_count++;
-    }
-    if (staged_count == 0) printf("  (nothing to show)\n");
-    printf("\n");
-
-    printf("Unstaged changes:\n");
-    int unstaged_count = 0;
-    for (int i = 0; i < index->count; i++) {
-        struct stat st;
-        if (stat(index->entries[i].path, &st) != 0) {
-            printf("  deleted:    %s\n", index->entries[i].path);
-            unstaged_count++;
-        } else {
-            // Fast diff: check metadata instead of re-hashing file content
-            if (st.st_mtime != (time_t)index->entries[i].mtime_sec || st.st_size != (off_t)index->entries[i].size) {
-                printf("  modified:   %s\n", index->entries[i].path);
+    // Note: A true h);
                 unstaged_count++;
             }
         }
