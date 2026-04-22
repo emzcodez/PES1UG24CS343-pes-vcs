@@ -52,12 +52,7 @@ void object_path(const ObjectID *id, char *path_out, size_t path_size) {
     char hex[HASH_HEX_SIZE + 1];
     hash_to_hex(id, hex);
     snprintf(path_out, path_size, "%s/%.2s/%s", OBJECTS_DIR, hex, hex + 2);
-}
-
-int object_exists(const ObjectID *id) {
-    char path[512];
-    object_path(id, path, sizeof(path));
-    return access(path, F_OK) == 0;
+}lskf;dl
 }
 
 // ─── TODO: Implement these ──────────────────────────────────────────────────
