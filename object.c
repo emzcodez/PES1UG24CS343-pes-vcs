@@ -97,19 +97,7 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     else if (type == OBJ_TREE) type_str = "tree";
     else if (type == OBJ_COMMIT) type_str = "commit";
     else return -1;
-
-    // 2. Build header "type size"
-    char header[64];
-    int header_len = snprintf(header, sizeof(header), "%s %zu", type_str, len);
-
-    // 3. Build full object = header + '\0' + data
-    size_t total_len = header_len + 1 + len;
-    unsigned char *buf = malloc(total_len);
-    if (!buf) return -1;
-
-    memcpy(buf, header, header_len);
-    buf[header_len] = '\0';
-    memcpy(buf + header_len + 1, data, len);
+ len);
 
     // 4. Compute hash
     compute_hash(buf, total_len, id_out);
